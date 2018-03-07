@@ -1,0 +1,88 @@
+---
+title: "Analyzing Citi Bike"
+author: "Miners R Us"
+date: "November 20, 2017"
+output: html_document
+---
+
+## Original Data set
+```{r}
+fulldata <- read.csv("201601-citibike-tripdata.csv", header = T)
+```
+
+##Aggregation of Data - Gender (Female, Male)
+
+```{r}
+colnames(fulldata)[2] <- c("starttime")
+colnames(fulldata)[15] <- c("gender")
+colnames(fulldata)[13] <- c("usertype")
+colnames(fulldata)[14] <- c("birth.year")
+
+mydate<- factor(fulldata$starttime)
+mydate <- as.POSIXct(mydate, format="%Y-%m-%d")
+fulldata$starttime <- mydate
+
+gender.data.count <- aggregate(day(fulldata$starttime) ~ fulldata$gender*fulldata$starttime, fulldata,FUN="length")
+colnames(gender.data.count) <- c ("gender","Date","count")
+gender.data.count <- reshape(gender.data.count, idvar = "Date", timevar = "gender", direction = "wide")
+colnames(gender.data.count) <- c("Date","Unknown","Male","Female")
+
+```
+
+##Aggregation of Data - User Type (Subscribers, Customers)
+```{r}
+user.count.data <- aggregate(day(fulldata$starttime) ~ fulldata$usertype*fulldata$starttime, fulldata,FUN="length")
+colnames(user.count.data) <- c ("usertype","Date","count")
+user.count.data <- reshape(user.count.data, idvar = "Date", timevar = "usertype", direction = "wide")
+colnames(user.count.data) <- c("Date","Customer","Subscriber")
+cust_gender <- merge(gender.data.count,user.count.data,by="Date")
+
+```
+
+##Aggregation of Data - Weather
+```{r}
+weather <- read.csv("weather_data_nyc_centralpark_2016.csv",header = TRUE)
+weatherdate<- factor(weather$date)
+weatherdate <- as.POSIXct(weatherdate, format="%d-%m-%Y")
+weatherdate <- as.POSIXct(weatherdate, format="%Y-%m-%d")
+weather$Date <- weatherdate
+
+```
+
+##Aggregation of Data - Age Group
+```{r}
+
+fulldata$Age <- 2017 -as.numeric(fulldata$birth.year)
+fulldata$AgeGroup = fulldata$Age
+fulldata$AgeGroup[fulldata$AgeGroup >=16 & fulldata$AgeGroup <=20] <-1
+fulldata$AgeGroup[fulldata$AgeGroup >=21 & fulldata$AgeGroup <=30] <-2
+fulldata$AgeGroup[fulldata$AgeGroup >=31 & fulldata$AgeGroup <=40] <-3
+fulldata$AgeGroup[fulldata$AgeGroup >=41 & fulldata$AgeGroup <=50] <-4
+fulldata$AgeGroup[fulldata$AgeGroup >=51 & fulldata$AgeGroup <=60] <-5
+fulldata$AgeGroup[fulldata$AgeGroup >= 60] <-6
+fulldata$AgeGroup[is.na(fulldata$AgeGroup)] <-0
+agg.count <- aggregate(day(fulldata$starttime) ~ fulldata$AgeGroup*fulldata$starttime, fulldata, FUN="length")
+colnames(agg.count)<- c("AgeGroup","Day","Count")
+agg.spread <- spread(agg.count,key=AgeGroup, value = Count)
+colnames(agg.spread) <- c("Date","Not Available","Below 20","21 to 30","31 to 40","41 to 50","51 to 60","Above 60")
+
+cust_gender_age <- merge(cust_gender,agg.spread,by="Date")
+final_data <- merge(cust_gender_age,weather,by="Date")
+
+write.csv(final_data,"citibike_jun.csv")
+```
+
+##Histogram of Total Known Usage by Gender
+###Used combined dataset for this histogram, whereas above were created using each individual month's data
+```{r}
+cb_data <- read.csv('citibike_2016_dataset.csv') # csv has combined data of 362 observations only
+cb_data_df <- data.frame(cb_data)
+male<-c(cb_data_df$Male)
+female<-c(cb_data_df$Female)
+hist(male,col="darkgreen", ylim=c(0,100),ylab ="FREQUENCY", xlab="Number of Male Users", main = "Total Known Male Users")
+hist(female,col="purple", ylim=c(0,100),ylab ="FREQUENCY", xlab="Number of Female Users", xlim = c(0,20000), main = "Total Known Female Users")
+```
+
+
+
+
