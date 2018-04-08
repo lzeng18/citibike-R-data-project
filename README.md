@@ -10,5 +10,5 @@ Data Source: Public Citi Bike dataset (https://www.citibikenyc.com/system-data)
 ## Usage: 
 csv file: contains aggregated and cleaned data
 rmd: our code in r markdown 
-pdf: final presentation
+
 [FinalPresentation.pdf](https://github.com/lzeng18/citibike-R-data-project/files/1887122/FinalPresentation.pdf)
